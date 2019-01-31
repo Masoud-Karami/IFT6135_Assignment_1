@@ -7,7 +7,7 @@
 
 import datetime
 import numpy as np
-import random
+#import random
 import pickle
 
 class NN(object):
@@ -22,14 +22,20 @@ class NN(object):
         else:
             self.load(model_path)
     
-    def initialize_weights(self,n_hidden,dims):
+    def initialize_weights(self,n_hidden,dims,init_mode='GLOROT'):
 	# either ZERO init / NORMAL DISTRIBUTION init / GLOROT init
         for l in range(n_hidden+1):
-            bias = random.random()
+            bias = 0
+            d = np.sqrt(6/(dims[l]+dims[l+1])) #uniform limits for GLOROT init
             self.layers.append(Layer(bias,dims[l+1]))
             for n in range(len(self.layers[l].neurons)):
                 for w in range(dims[l]):
-                    self.layers[l].neurons[n].weights.append(random.random()) #here instead of random, put the normal random function or whatever else
+                    if init_mode.upper() == 'GLOROT':
+                        self.layers[l].neurons[n].weights.append(np.random.uniform(-d,d))
+                    elif init_mode.upper() == 'NORMAL':
+                        self.layers[l].neurons[n].weights.append(np.random.randn()) #here instead of random, put the normal random function or whatever else
+                    else:
+                        self.layers[l].neurons[n].weights.append(0)
     
     def forward(self,input,labels):#..
         # forward propagation of the NN (use activation functions)
@@ -143,7 +149,7 @@ class Neuron:
         print(*["{0:0.2f}".format(i) for i in self.weights], sep = ", ")
         
 def main():
-    classifier = NN((3,2,2,3), 2)
+    classifier = NN((3,2,2,2), 2)
     #classifier.save()
     #classifier = NN((1,4,1,1),2,'train',None,'NN_2019_1_31_13h10m16s')
     
