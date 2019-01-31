@@ -41,6 +41,8 @@ class NN(object):
                 input = self.activation(output)
             else:
                 input = self.softmax(output)
+        index = list(input).index(max(input))
+        print('\nThe index is : ' + str(index))
         return input
         
     def activation(self,input):
@@ -80,7 +82,7 @@ class NN(object):
 	# UNTIL satisfied with the training / loss
     	print("")
     
-    def test(self):
+    def test(self,epoch=10):
 	# test the non-training dataset and output the accuracy rate...
     	print("")
         
@@ -141,14 +143,14 @@ class Neuron:
         print(*["{0:0.2f}".format(i) for i in self.weights], sep = ", ")
         
 def main():
-    #classifier = NN((3,2,2,2), 2)
+    classifier = NN((3,2,2,3), 2)
     #classifier.save()
-    classifier = NN((1,1,1,1),2,'train',None,'NN_2019_1_31_13h10m16s')
+    #classifier = NN((1,4,1,1),2,'train',None,'NN_2019_1_31_13h10m16s')
     
     classifier.display()
 	
     out = classifier.forward([1,-1,5],0)
-    print(out)
+    print('output : ' + str(out))
     # Training
 	#classifier.train(dataset_train)
 	
