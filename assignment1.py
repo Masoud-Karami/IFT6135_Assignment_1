@@ -5,8 +5,9 @@
 
 # UdeM, IFT6135, Assignment 1, H2019
 
+import os
+import datetime
 import numpy as np
-np.set_printoptions(precision=2)
 import random
 import pickle
 
@@ -77,8 +78,12 @@ class NN(object):
 	# test the non-training dataset and output the accuracy rate...
     	print("")
         
-    def save(self,filename):
+    def save(self,filename=None):
         # saves the weights and structure of the current NN
+        if filename is None:
+            now = datetime.datetime.now()
+            filename = 'NN_' + str(now.year) + '_' + str(now.month) + '_' + str(now.day) + '_' + str(now.hour) + 'h' + str(now.minute) + 'm' + str(now.second) + 's'
+        
         with open(filename, 'wb') as f:
             pickle.dump([self.dims, self.n_hidden, self.layers], f)
             
@@ -131,7 +136,7 @@ class Neuron:
         
 def main():
     classifier = NN((2,2,2), 1)
-    classifier.save('stuff')
+    classifier.save()
     #classifier = NN((1,1,1,1),2,'train',None,'stuff')
     
     classifier.display(True)
