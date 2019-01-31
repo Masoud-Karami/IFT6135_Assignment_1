@@ -50,7 +50,7 @@ class NN(object):
 	
 	# We could add a switch case to let us decide what function we use istead of keeping the same for each layer (or having to comment and uncomment parts to test out things)
 	#ReLU :    
-        output = [max(i,0) for i in input]
+        output = np.maximum(input,np.zeros(len(input)))
         return output
     
     def loss(self,prediction): #..
@@ -59,8 +59,8 @@ class NN(object):
     def softmax(self,input):
 	# softmax activation function (slide #17 of Artificial Neuron presentation)
 	# the sum of the output vector will be = 1.
-        total = sum([np.exp(i) for i in input])
-        output = [np.exp(i)/total for i in input]
+        a = np.exp(input)
+        output = a/a.sum()
         return output
 	
     def backward(self,cache,labels): #...
@@ -141,9 +141,9 @@ class Neuron:
         print(*["{0:0.2f}".format(i) for i in self.weights], sep = ", ")
         
 def main():
-    classifier = NN((3,2,2,2), 2)
+    #classifier = NN((3,2,2,2), 2)
     #classifier.save()
-    #classifier = NN((1,1,1,1),2,'train',None,'stuff')
+    classifier = NN((1,1,1,1),2,'train',None,'NN_2019_1_31_13h10m16s')
     
     classifier.display()
 	
