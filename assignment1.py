@@ -5,7 +5,6 @@
 
 # UdeM, IFT6135, Assignment 1, H2019
 
-import os
 import datetime
 import numpy as np
 import random
@@ -33,8 +32,16 @@ class NN(object):
                     self.layers[l].neurons[n].weights.append(random.random()) #here instead of random, put the normal random function or whatever else
     
     def forward(self,input,labels):#..
-	# forward propagation of the NN (use activation functions)
-        print("")
+        # forward propagation of the NN (use activation functions)
+        for l in range(self.n_hidden+1):
+            output = []
+            for n in range(len(self.layers[l].neurons)):
+                output.append(sum(np.multiply(input,self.layers[l].neurons[n].weights)))
+            if l < self.n_hidden:
+                input = self.activation(output)
+            else:
+                input = self.softmax(output)
+        return input
         
     def activation(self,input):
     # activation function (sigmoid / ReLU / Maxout / linear / or whatever)
@@ -65,8 +72,7 @@ class NN(object):
         print("")
 	
     def train(self):
-	# RUN	- initialization of weights
-	# THEN DO
+	# DO
 	#		- forward
 	#		- loss
 	#		- backward
@@ -135,12 +141,15 @@ class Neuron:
         print(*["{0:0.2f}".format(i) for i in self.weights], sep = ", ")
         
 def main():
-    classifier = NN((2,2,2), 1)
-    classifier.save()
+    classifier = NN((3,2,2,2), 2)
+    #classifier.save()
     #classifier = NN((1,1,1,1),2,'train',None,'stuff')
     
-    classifier.display(True)
-	# Training
+    classifier.display()
+	
+    out = classifier.forward([1,-1,5],0)
+    print(out)
+    # Training
 	#classifier.train(dataset_train)
 	
 	# Test
