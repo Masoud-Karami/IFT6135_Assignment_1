@@ -15,10 +15,13 @@ import pickle
 class BadInit(Exception):
     """Something in the initialization is wrong"""
     pass
+class BadInput(Exception):
+    """Something is wrong with the inputs"""
+    pass
 
 class NN(object):
     
-    def __init__(self,dims=(784,1024,2048,10),n_hidden=2,mode='train',datapath=None,model_path=None):
+    def __init__(self,dims=(784,1024,2048,10),n_hidden=2,init_mode='GLOROT',mode='train',datapath=None,model_path=None):
         
         if model_path is None:
             if n_hidden+2 != len(dims):
@@ -26,11 +29,11 @@ class NN(object):
             self.dims = dims
             self.n_hidden = n_hidden
             self.layers = []
-            self.initialize_weights(n_hidden,dims,'ZERO')
+            self.initialize_weights(n_hidden,dims,init_mode)
         else:
             self.load(model_path)
     
-    def initialize_weights(self,n_hidden,dims,init_mode='GLOROT'):
+    def initialize_weights(self,n_hidden,dims,init_mode):
 	# either ZERO init / NORMAL DISTRIBUTION init / GLOROT init
         for l in range(n_hidden+1):
             bias = 0
@@ -49,6 +52,8 @@ class NN(object):
     
     def forward(self,input,labels):#..
         # forward propagation of the NN (use activation functions)
+        if len(input) != self.dims[0]:
+            raise BadInput('The number of inputs do not match!')
         for l in range(self.n_hidden+1):
             output = []
             for n in range(len(self.layers[l].neurons)):
@@ -117,6 +122,7 @@ class NN(object):
             self.dims, self.n_hidden, self.layers = pickle.load(f)
     
     def display(self, display_weights=False):
+        print("")
         strings = ["#inputs"]
         for i in range(1,self.n_hidden+1):
             strings.append("hid.layer." + str(i))
@@ -159,13 +165,17 @@ class Neuron:
         print(*["{0:0.2f}".format(i) for i in self.weights], sep = ", ")
         
 def main():
-    classifier = NN((3,2,2), 2)
+    dataset = [[0,0],[0,1],[1,0],[1,1]]
+    y = [[1,0],[0,1],[0,1],[1,0]]
+    
+    classifier = NN((2,2,2), 1, 'GLOROT')
     #classifier.save()
-    #classifier = NN((1,4,1,1),2,'train',None,'NN_2019_1_31_13h10m16s')
+    #classifier = NN((1,4,1,1),2,'GLOROT','train',None,'NN_2019_1_31_13h10m16s')
     
     classifier.display()
 	
-    out = classifier.forward([1,-1,5],0)
+    out = classifier.forward(dataset[0],0)
+    
     print('output : ' + str(out))
     # Training
 	#classifier.train(dataset_train)
