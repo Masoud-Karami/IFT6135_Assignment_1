@@ -5,20 +5,28 @@
 
 # UdeM, IFT6135, Assignment 1, H2019
 
+#import os
 import datetime
 import numpy as np
 #import random
 import pickle
+#import logging
+
+class BadInit(Exception):
+    """Something in the initialization is wrong"""
+    pass
 
 class NN(object):
     
     def __init__(self,dims=(784,1024,2048,10),n_hidden=2,mode='train',datapath=None,model_path=None):
         
         if model_path is None:
+            if n_hidden+2 != len(dims):
+                raise BadInit('The dimentions and number of hidden layers do not add up!')
             self.dims = dims
             self.n_hidden = n_hidden
             self.layers = []
-            self.initialize_weights(n_hidden,dims)
+            self.initialize_weights(n_hidden,dims,'ZERO')
         else:
             self.load(model_path)
     
@@ -34,8 +42,10 @@ class NN(object):
                         self.layers[l].neurons[n].weights.append(np.random.uniform(-d,d))
                     elif init_mode.upper() == 'NORMAL':
                         self.layers[l].neurons[n].weights.append(np.random.randn()) #here instead of random, put the normal random function or whatever else
-                    else:
+                    elif init_mode.upper() == 'ZERO':
                         self.layers[l].neurons[n].weights.append(0)
+                    else:
+                        raise BadInit('Initializing function not valid, choose between GLOROT, NORMAL and ZERO')
     
     def forward(self,input,labels):#..
         # forward propagation of the NN (use activation functions)
@@ -149,7 +159,7 @@ class Neuron:
         print(*["{0:0.2f}".format(i) for i in self.weights], sep = ", ")
         
 def main():
-    classifier = NN((3,2,2,2), 2)
+    classifier = NN((3,2,2), 2)
     #classifier.save()
     #classifier = NN((1,4,1,1),2,'train',None,'NN_2019_1_31_13h10m16s')
     
