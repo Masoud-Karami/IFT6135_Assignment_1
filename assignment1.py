@@ -57,7 +57,7 @@ class NN(object):
         for l in range(self.n_hidden+1):
             output = []
             for n in range(len(self.layers[l].neurons)):
-                output.append(sum(np.multiply(input,self.layers[l].neurons[n].weights)))
+                output.append(sum(np.multiply(input,self.layers[l].neurons[n].weights)) + self.layers[l].bias)
             if l < self.n_hidden:
                 input = self.activation(output)
             else:
@@ -94,14 +94,10 @@ class NN(object):
 	# Upgrade the weights after backward propagation
         print("")
 	
-    def train(self):
-	# DO
-	#		- forward
-	#		- loss
-	#		- backward
-	#		- update
-	# UNTIL satisfied with the training / loss
-    	print("")
+    def train(self,training_set,validation,batch_size,epochs):
+        n_batch = int(len(training_set) / batch_size)
+        for epoch in range(1,epochs+1):
+            y = self.forward(training_set)
     
     def test(self,epoch=10):
 	# test the non-training dataset and output the accuracy rate...
