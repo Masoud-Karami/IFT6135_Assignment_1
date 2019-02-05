@@ -86,7 +86,7 @@ class NN(object):
 	# the sum of the output vector will be = 1.
         a = np.exp(input)
         try:
-            return a / a.dot(np.ones([np.shape(input)[1], np.shape(input)[1]]))
+            return a/a.dot(np.ones([np.shape(input)[1], np.shape(input)[1]]))
         except:
             return a/a.sum()
 	
@@ -108,7 +108,15 @@ class NN(object):
                 tr_y = target_set[(b*batch_size):((b+1)*batch_size)]
                 prediction = self.forward(tr_x)
                 # delta ?
-    
+                
+    def shuffle_set(self,training_set,target_set):
+        seed = np.random.randint(2**31)
+        np.random.seed(seed)
+        np.random.shuffle(training_set)
+        np.random.seed(seed)
+        np.random.shuffle(target_set)
+        np.random.seed()
+        
     def test(self,epoch=10):
 	# test the non-training dataset and output the accuracy rate...
     	print("")
@@ -199,6 +207,9 @@ def main():
     out = classifier.forward(dataset,0)
     cross_entropy_loss = classifier.cross_entropy(out,y)
     
+    cool = [1,2,3,4,5,6]
+    cool2 = [1,2,3,4,5,6]
+    classifier.shuffle_set(dataset,y)
     
     print('\nOutputs :')
     for o in out:
