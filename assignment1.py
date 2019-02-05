@@ -5,12 +5,10 @@
 
 # UdeM, IFT6135, Assignment 1, H2019
 
-#import os
 import datetime
 import numpy as np
-#import random
 import pickle
-#import logging
+import gzip
 
 class BadInit(Exception):
     """Something in the initialization is wrong"""
@@ -69,14 +67,11 @@ class NN(object):
     def activation(self,input):
     # activation function (sigmoid / ReLU / Maxout / linear / or whatever)
 	# input : vector with results of pre-activation of one layer
-	# output : vector with results of activation of the layer
-	
-	# We could add a switch case to let us decide what function we use istead of keeping the same for each layer (or having to comment and uncomment parts to test out things)
-	#ReLU :  
+	# output : vector with results of activation of the layer 
         output = np.maximum(input,np.zeros(np.shape(input)))
         return output
     
-    def loss(self,prediction): #..
+    def loss(self,results,prediction):
         print("")
     
     def softmax(self,input):
@@ -161,16 +156,21 @@ class Layer:
         print('Weights :')
         print(self.weights[1::][::])
 
-#class Neuron:
-#    def __init__(self):
-#        self.weights = []
-#        
-#    def display(self):
-#        print(*["{0:0.2f}".format(i) for i in self.weights], sep = ", ")
-        
+def import_MNIST():
+    with gzip.open('./data/mnist.pkl.gz', 'rb') as f:
+        tr,va,te = pickle.load(f, encoding='latin-1')
+    tr_x, tr_y = tr
+    va_x, va_y = va
+    te_x, te_y = te
+    return (tr_x,tr_y,va_x,va_y,te_x,te_y)
+      
 def main():
+    # testing dataset :
     dataset = [[0,0],[0,1],[1,0],[1,1]]
     y = [[1,0],[0,1],[0,1],[1,0]]
+    
+    # import MNIST dataset :
+    #tr_x,tr_y,va_x,va_y,te_x,te_y = import_MNIST()
     
     classifier = NN((2,3,2), 1, 'GLOROT')
     #classifier.save()
