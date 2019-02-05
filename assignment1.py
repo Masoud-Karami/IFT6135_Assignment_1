@@ -77,12 +77,11 @@ class NN(object):
     def softmax(self,input):
 	# softmax activation function (slide #17 of Artificial Neuron presentation)
 	# the sum of the output vector will be = 1.
-        if np.ndim(input) == 2:
-            output = [a/a.sum() for a in np.exp(input)]
-        else:
-            a = np.exp(input)
-            output = a/a.sum()
-        return output
+        a = np.exp(input)
+        try:
+            return a / a.dot(np.ones([np.shape(input)[1], np.shape(input)[1]]))
+        except:
+            return a/a.sum()
 	
     def backward(self,cache,labels): #...
 	# backward propagation
