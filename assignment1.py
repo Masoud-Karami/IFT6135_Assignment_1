@@ -37,33 +37,24 @@ class NN(object):
 	# either ZERO init / NORMAL DISTRIBUTION init / GLOROT init
         for l in range(n_hidden+1):
             bias = 0
-            d = np.sqrt(6/(dims[l]+dims[l+1])) #uniform limits for GLOROT init
-            self.layers.append(Layer(bias,dims[l+1]))
-            for n in range(len(self.layers[l].neurons)):
-                for w in range(dims[l]):
-                    if init_mode.upper() == 'GLOROT':
-                        self.layers[l].neurons[n].weights.append(np.random.uniform(-d,d))
-                    elif init_mode.upper() == 'NORMAL':
-                        self.layers[l].neurons[n].weights.append(np.random.randn()) #here instead of random, put the normal random function or whatever else
-                    elif init_mode.upper() == 'ZERO':
-                        self.layers[l].neurons[n].weights.append(0)
-                    else:
-                        raise BadInit('Initializing function not valid, choose between GLOROT, NORMAL and ZERO')
+            self.layers.append(Layer(bias,dims[l:l+2],init_mode))
+            
+
     
     def forward(self,input,labels):#..
         # forward propagation of the NN (use activation functions)
-        if len(input) != self.dims[0]:
-            raise BadInput('The number of inputs do not match!')
+        #if len(input) != self.dims[0]:
+            #raise BadInput('The number of inputs do not match!')
         for l in range(self.n_hidden+1):
-            output = []
-            for n in range(len(self.layers[l].neurons)):
-                output.append(sum(np.multiply(input,self.layers[l].neurons[n].weights)) + self.layers[l].bias)
+            input = np.concatenate((np.ones([np.shape(input)[0],1]),input),axis=1)
+            #input = np.concatenate((np.ones(1),input))
+            output = input.dot(self.layers[l].weights)
             if l < self.n_hidden:
                 input = self.activation(output)
             else:
                 input = self.softmax(output)
-        index = list(input).index(max(input))
-        print('\nThe index is : ' + str(index))
+        #index = list(input).index(max(input))
+        #print('\nThe index is : ' + str(index))
         return input
         
     def activation(self,input):
@@ -72,8 +63,8 @@ class NN(object):
 	# output : vector with results of activation of the layer
 	
 	# We could add a switch case to let us decide what function we use istead of keeping the same for each layer (or having to comment and uncomment parts to test out things)
-	#ReLU :    
-        output = np.maximum(input,np.zeros(len(input)))
+	#ReLU :  
+        output = np.maximum(input,np.zeros(np.shape(input)))
         return output
     
     def loss(self,prediction): #..
@@ -82,8 +73,10 @@ class NN(object):
     def softmax(self,input):
 	# softmax activation function (slide #17 of Artificial Neuron presentation)
 	# the sum of the output vector will be = 1.
-        a = np.exp(input)
-        output = a/a.sum()
+        output = []
+        for i in input:
+            a = np.exp(i)
+            output.append(a/a.sum())
         return output
 	
     def backward(self,cache,labels): #...
@@ -140,25 +133,29 @@ class NN(object):
                 self.layers[l].display(l+1)
         
 class Layer:
-    def __init__(self, bias, nNeurons):
-        self.bias = bias
-        self.neurons = []
-        for i in range(nNeurons):
-            self.neurons.append(Neuron())
+    def __init__(self, bias, dims, init_mode):
+        d = np.sqrt(6/(dims[0]+dims[1])) #uniform limits for GLOROT init
+        if init_mode.upper() == 'GLOROT':
+            self.weights = np.random.uniform(-d,d,[dims[0],dims[1]])
+        elif init_mode.upper() == 'NORMAL':
+            self.weights = np.random.randn(dims[0],dims[1]) #here instead of random, put the normal random function or whatever else
+        elif init_mode.upper() == 'ZERO':
+            self.weights = np.zeros([dims[0],dims[1]])
+        else:
+            raise BadInit('Initializing function not valid, choose between GLOROT, NORMAL and ZERO')
+        self.weights = np.concatenate((np.ones([1,dims[1]]),self.weights))
     
     def display(self, layer_num):
         print('\nLayer %i parameters :' % layer_num)
-        print('Bias : %1.2f' % self.bias)
-        for n in range(len(self.neurons)):
-            print('Neuron %i weights :' % (n+1))
-            self.neurons[n].display()
+        print('Bias : %1.2f' % self.weights[0][0])
+        print('Weights :' % self.weights[1::][::])
 
-class Neuron:
-    def __init__(self):
-        self.weights = []
-        
-    def display(self):
-        print(*["{0:0.2f}".format(i) for i in self.weights], sep = ", ")
+#class Neuron:
+#    def __init__(self):
+#        self.weights = []
+#        
+#    def display(self):
+#        print(*["{0:0.2f}".format(i) for i in self.weights], sep = ", ")
         
 def main():
     dataset = [[0,0],[0,1],[1,0],[1,1]]
@@ -170,7 +167,7 @@ def main():
     
     classifier.display()
 	
-    out = classifier.forward(dataset[0],0)
+    out = classifier.forward(dataset,0)
     
     print('output : ' + str(out))
     # Training
