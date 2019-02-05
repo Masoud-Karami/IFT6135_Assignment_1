@@ -38,7 +38,7 @@ class NN(object):
             self.layers.append(Layer(bias,dims[l:l+2],init_mode))
     
     def forward(self,input,labels):#..
-        # forward propagation of the NN (use activation functions)
+        # forward propagation of the NN
         
         # Input verifications
         if np.ndim(input) == 2:
@@ -73,9 +73,11 @@ class NN(object):
         # make sure the inputs are in valid range
         if np.any(prediction < 0) or np.any(target < 0):
             raise ValueError('Negative prediction or target values')
-        np.clip(prediction,1e-9,1)
-        out = -(target * np.log(prediction)).mean()
-        return out
+        np.clip(prediction,1e-12,1)
+        output = -np.sum(target * np.log(prediction))
+        if np.ndim(prediction) == 2:
+            output /= prediction.shape[0]
+        return output
     
     def softmax(self,input):
 	# softmax activation function (slide #17 of Artificial Neuron presentation)
@@ -94,10 +96,16 @@ class NN(object):
 	# Upgrade the weights after backward propagation
         print("")
 	
-    def train(self,training_set,validation,batch_size,epochs):
+    def train(self,training_set,target_set,batch_size,epochs=10):
+        # split up the training set in batch size
         n_batch = int(len(training_set) / batch_size)
-        for epoch in range(1,epochs+1):
-            y = self.forward(training_set)
+        
+        for epoch in epochs:
+            for b in range(n_batch):
+                tr_x = training_set[(b*batch_size):((b+1)*batch_size)]
+                tr_y = target_set[(b*batch_size):((b+1)*batch_size)]
+                prediction = self.forward(tr_x)
+                # delta ?
     
     def test(self,epoch=10):
 	# test the non-training dataset and output the accuracy rate...
@@ -172,6 +180,7 @@ def main():
     # testing dataset :
     dataset = [[0,0],[0,1],[1,0],[1,1]]
     y = np.array([[1,0],[0,1],[0,1],[1,0]])
+    
     # import MNIST dataset :
     #tr_x,tr_y,va_x,va_y,te_x,te_y = import_MNIST()
     
@@ -183,7 +192,9 @@ def main():
     classifier.display(display_weights)
 	
     out = classifier.forward(dataset,0)
-    cross_entropy_loss = classifier.cross_entropy(out,y)
+    cross_entropy_loss = classifier.cross_entropy(out[1],y[1])
+    
+    
     
     print('\nOutputs :')
     for o in out:
