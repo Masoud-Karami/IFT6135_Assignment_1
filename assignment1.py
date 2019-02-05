@@ -5,12 +5,10 @@
 
 # UdeM, IFT6135, Assignment 1, H2019
 
-#import os
 import datetime
 import numpy as np
-#import random
 import pickle
-#import logging
+import gzip
 
 class BadInit(Exception):
     """Something in the initialization is wrong"""
@@ -36,54 +34,54 @@ class NN(object):
     def initialize_weights(self,n_hidden,dims,init_mode):
 	# either ZERO init / NORMAL DISTRIBUTION init / GLOROT init
         for l in range(n_hidden+1):
-            bias = 0
-            d = np.sqrt(6/(dims[l]+dims[l+1])) #uniform limits for GLOROT init
-            self.layers.append(Layer(bias,dims[l+1]))
-            for n in range(len(self.layers[l].neurons)):
-                for w in range(dims[l]):
-                    if init_mode.upper() == 'GLOROT':
-                        self.layers[l].neurons[n].weights.append(np.random.uniform(-d,d))
-                    elif init_mode.upper() == 'NORMAL':
-                        self.layers[l].neurons[n].weights.append(np.random.randn()) #here instead of random, put the normal random function or whatever else
-                    elif init_mode.upper() == 'ZERO':
-                        self.layers[l].neurons[n].weights.append(0)
-                    else:
-                        raise BadInit('Initializing function not valid, choose between GLOROT, NORMAL and ZERO')
+            bias = 0.0
+            self.layers.append(Layer(bias,dims[l:l+2],init_mode))
+            
+
     
     def forward(self,input,labels):#..
         # forward propagation of the NN (use activation functions)
-        if len(input) != self.dims[0]:
-            raise BadInput('The number of inputs do not match!')
+        
+        # Input verifications
+        if np.ndim(input) == 2:
+            if np.shape(input)[1] != self.dims[0]:
+                raise BadInput('The number of inputs do not match the dimentions!')
+        else:
+            if len(input) != self.dims[0]:
+                raise BadInput('The number of inputs do not match the dimentions!')
+        
+        # propagate forward until output layer
         for l in range(self.n_hidden+1):
-            output = []
-            for n in range(len(self.layers[l].neurons)):
-                output.append(sum(np.multiply(input,self.layers[l].neurons[n].weights)) + self.layers[l].bias)
+            try:
+                # manage the case when multiple inputs
+                input = np.concatenate((np.ones([np.shape(input)[0],1]),input),axis=1)
+            except:
+                # manage the case when only one input
+                input = np.concatenate((np.ones(1),input))
+            output = input.dot(self.layers[l].weights)
             if l < self.n_hidden:
                 input = self.activation(output)
             else:
-                input = self.softmax(output)
-        index = list(input).index(max(input))
-        print('\nThe index is : ' + str(index))
-        return input
+                return (self.softmax(output))
         
     def activation(self,input):
     # activation function (sigmoid / ReLU / Maxout / linear / or whatever)
 	# input : vector with results of pre-activation of one layer
-	# output : vector with results of activation of the layer
-	
-	# We could add a switch case to let us decide what function we use istead of keeping the same for each layer (or having to comment and uncomment parts to test out things)
-	#ReLU :    
-        output = np.maximum(input,np.zeros(len(input)))
+	# output : vector with results of activation of the layer 
+        output = np.maximum(input,np.zeros(np.shape(input)))
         return output
     
-    def loss(self,prediction): #..
+    def loss(self,results,prediction):
         print("")
     
     def softmax(self,input):
 	# softmax activation function (slide #17 of Artificial Neuron presentation)
 	# the sum of the output vector will be = 1.
-        a = np.exp(input)
-        output = a/a.sum()
+        if np.ndim(input) == 2:
+            output = [a/a.sum() for a in np.exp(input)]
+        else:
+            a = np.exp(input)
+            output = a/a.sum()
         return output
 	
     def backward(self,cache,labels): #...
@@ -140,44 +138,52 @@ class NN(object):
                 self.layers[l].display(l+1)
         
 class Layer:
-    def __init__(self, bias, nNeurons):
-        self.bias = bias
-        self.neurons = []
-        for i in range(nNeurons):
-            self.neurons.append(Neuron())
+    def __init__(self, bias, dims, init_mode):
+        d = np.sqrt(6/(dims[0]+dims[1])) #uniform limits for GLOROT init
+        if init_mode.upper() == 'GLOROT':
+            self.weights = np.random.uniform(-d,d,[dims[0],dims[1]])
+        elif init_mode.upper() == 'NORMAL':
+            self.weights = np.random.randn(dims[0],dims[1]) #here instead of random, put the normal random function or whatever else
+        elif init_mode.upper() == 'ZERO':
+            self.weights = np.zeros([dims[0],dims[1]])
+        else:
+            raise BadInit('Initializing function not valid, choose between GLOROT, NORMAL and ZERO')
+        self.weights = np.concatenate((np.ones([1,dims[1]])*bias,self.weights))
     
     def display(self, layer_num):
         print('\nLayer %i parameters :' % layer_num)
-        print('Bias : %1.2f' % self.bias)
-        for n in range(len(self.neurons)):
-            print('Neuron %i weights :' % (n+1))
-            self.neurons[n].display()
+        print('Bias : %1.2f' % self.weights[0][0])
+        print('Weights :')
+        print(self.weights[1::][::])
 
-class Neuron:
-    def __init__(self):
-        self.weights = []
-        
-    def display(self):
-        print(*["{0:0.2f}".format(i) for i in self.weights], sep = ", ")
-        
+def import_MNIST():
+    with gzip.open('./data/mnist.pkl.gz', 'rb') as f:
+        tr,va,te = pickle.load(f, encoding='latin-1')
+    tr_x, tr_y = tr
+    va_x, va_y = va
+    te_x, te_y = te
+    return (tr_x,tr_y,va_x,va_y,te_x,te_y)
+      
 def main():
+    # testing dataset :
     dataset = [[0,0],[0,1],[1,0],[1,1]]
     y = [[1,0],[0,1],[0,1],[1,0]]
     
-    classifier = NN((2,2,2), 1, 'GLOROT')
+    # import MNIST dataset :
+    #tr_x,tr_y,va_x,va_y,te_x,te_y = import_MNIST()
+    
+    classifier = NN((2,3,2), 1, 'GLOROT')
     #classifier.save()
     #classifier = NN((1,4,1,1),2,'GLOROT','train',None,'NN_2019_1_31_13h10m16s')
     
-    classifier.display()
+    display_weights = False
+    classifier.display(display_weights)
 	
-    out = classifier.forward(dataset[0],0)
+    out = classifier.forward(dataset,0)
     
-    print('output : ' + str(out))
-    # Training
-	#classifier.train(dataset_train)
-	
-	# Test
-	#classifier.test(dataset_test)
+    print('\nOutputs :')
+    for o in out:
+        print(o)
 	
 
 if __name__ == '__main__':
