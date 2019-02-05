@@ -36,26 +36,35 @@ class NN(object):
     def initialize_weights(self,n_hidden,dims,init_mode):
 	# either ZERO init / NORMAL DISTRIBUTION init / GLOROT init
         for l in range(n_hidden+1):
-            bias = 0
+            bias = 0.0
             self.layers.append(Layer(bias,dims[l:l+2],init_mode))
             
 
     
     def forward(self,input,labels):#..
         # forward propagation of the NN (use activation functions)
-        #if len(input) != self.dims[0]:
-            #raise BadInput('The number of inputs do not match!')
+        
+        # Input verifications
+        if np.ndim(input) == 2:
+            if np.shape(input)[1] != self.dims[0]:
+                raise BadInput('The number of inputs do not match the dimentions!')
+        else:
+            if len(input) != self.dims[0]:
+                raise BadInput('The number of inputs do not match the dimentions!')
+        
+        # propagate forward until output layer
         for l in range(self.n_hidden+1):
-            input = np.concatenate((np.ones([np.shape(input)[0],1]),input),axis=1)
-            #input = np.concatenate((np.ones(1),input))
+            try:
+                # manage the case when multiple inputs
+                input = np.concatenate((np.ones([np.shape(input)[0],1]),input),axis=1)
+            except:
+                # manage the case when only one input
+                input = np.concatenate((np.ones(1),input))
             output = input.dot(self.layers[l].weights)
             if l < self.n_hidden:
                 input = self.activation(output)
             else:
-                input = self.softmax(output)
-        #index = list(input).index(max(input))
-        #print('\nThe index is : ' + str(index))
-        return input
+                return (self.softmax(output))
         
     def activation(self,input):
     # activation function (sigmoid / ReLU / Maxout / linear / or whatever)
@@ -73,10 +82,11 @@ class NN(object):
     def softmax(self,input):
 	# softmax activation function (slide #17 of Artificial Neuron presentation)
 	# the sum of the output vector will be = 1.
-        output = []
-        for i in input:
-            a = np.exp(i)
-            output.append(a/a.sum())
+        if np.ndim(input) == 2:
+            output = [a/a.sum() for a in np.exp(input)]
+        else:
+            a = np.exp(input)
+            output = a/a.sum()
         return output
 	
     def backward(self,cache,labels): #...
@@ -143,12 +153,13 @@ class Layer:
             self.weights = np.zeros([dims[0],dims[1]])
         else:
             raise BadInit('Initializing function not valid, choose between GLOROT, NORMAL and ZERO')
-        self.weights = np.concatenate((np.ones([1,dims[1]]),self.weights))
+        self.weights = np.concatenate((np.ones([1,dims[1]])*bias,self.weights))
     
     def display(self, layer_num):
         print('\nLayer %i parameters :' % layer_num)
         print('Bias : %1.2f' % self.weights[0][0])
-        print('Weights :' % self.weights[1::][::])
+        print('Weights :')
+        print(self.weights[1::][::])
 
 #class Neuron:
 #    def __init__(self):
@@ -161,20 +172,18 @@ def main():
     dataset = [[0,0],[0,1],[1,0],[1,1]]
     y = [[1,0],[0,1],[0,1],[1,0]]
     
-    classifier = NN((2,2,2), 1, 'GLOROT')
+    classifier = NN((2,3,2), 1, 'GLOROT')
     #classifier.save()
     #classifier = NN((1,4,1,1),2,'GLOROT','train',None,'NN_2019_1_31_13h10m16s')
     
-    classifier.display()
+    display_weights = False
+    classifier.display(display_weights)
 	
     out = classifier.forward(dataset,0)
     
-    print('output : ' + str(out))
-    # Training
-	#classifier.train(dataset_train)
-	
-	# Test
-	#classifier.test(dataset_test)
+    print('\nOutputs :')
+    for o in out:
+        print(o)
 	
 
 if __name__ == '__main__':
