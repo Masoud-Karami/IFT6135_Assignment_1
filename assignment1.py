@@ -36,8 +36,6 @@ class NN(object):
         for l in range(n_hidden+1):
             bias = 0.0
             self.layers.append(Layer(bias,dims[l:l+2],init_mode))
-            
-
     
     def forward(self,input,labels):#..
         # forward propagation of the NN (use activation functions)
@@ -71,8 +69,13 @@ class NN(object):
         output = np.maximum(input,np.zeros(np.shape(input)))
         return output
     
-    def loss(self,results,prediction):
-        print("")
+    def cross_entropy(self,prediction,target):
+        # make sure the inputs are in valid range
+        if np.any(prediction < 0) or np.any(target < 0):
+            raise ValueError('Negative prediction or target values')
+        np.clip(prediction,1e-9,1)
+        out = -(target * np.log(prediction)).mean()
+        return out
     
     def softmax(self,input):
 	# softmax activation function (slide #17 of Artificial Neuron presentation)
@@ -102,16 +105,18 @@ class NN(object):
         
     def save(self,filename=None):
         # saves the weights and structure of the current NN
+        path = "./Saved_models/"
         if filename is None:
             now = datetime.datetime.now()
             filename = 'NN_' + str(now.year) + '_' + str(now.month) + '_' + str(now.day) + '_' + str(now.hour) + 'h' + str(now.minute) + 'm' + str(now.second) + 's'
         
-        with open(filename, 'wb') as f:
+        with open(path+filename, 'wb') as f:
             pickle.dump([self.dims, self.n_hidden, self.layers], f)
             
     def load(self, filename):
         # load the weights and structure of the saved NN
-        with open(filename, 'rb') as f:
+        path = "./Saved_models/"
+        with open(path+filename, 'rb') as f:
             self.dims, self.n_hidden, self.layers = pickle.load(f)
     
     def display(self, display_weights=False):
@@ -166,12 +171,11 @@ def import_MNIST():
 def main():
     # testing dataset :
     dataset = [[0,0],[0,1],[1,0],[1,1]]
-    y = [[1,0],[0,1],[0,1],[1,0]]
-    
+    y = np.array([[1,0],[0,1],[0,1],[1,0]])
     # import MNIST dataset :
     #tr_x,tr_y,va_x,va_y,te_x,te_y = import_MNIST()
     
-    classifier = NN((2,3,2), 1, 'GLOROT')
+    classifier = NN((2,4,2), 1, 'GLOROT')
     #classifier.save()
     #classifier = NN((1,4,1,1),2,'GLOROT','train',None,'NN_2019_1_31_13h10m16s')
     
@@ -179,11 +183,13 @@ def main():
     classifier.display(display_weights)
 	
     out = classifier.forward(dataset,0)
+    cross_entropy_loss = classifier.cross_entropy(out,y)
     
     print('\nOutputs :')
     for o in out:
         print(o)
 	
+    print('\nCross-entropy : %1.3f' % cross_entropy_loss)
 
 if __name__ == '__main__':
     main()
