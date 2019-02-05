@@ -74,10 +74,12 @@ class NN(object):
         if np.any(prediction < 0) or np.any(target < 0):
             raise ValueError('Negative prediction or target values')
         np.clip(prediction,1e-12,1)
-        output = -np.sum(target * np.log(prediction))
-        if np.ndim(prediction) == 2:
-            output /= prediction.shape[0]
-        return output
+        try:
+            out_neuron = prediction[np.arange(prediction.shape[0]),target]
+        except:
+            # for when there is only one sample
+            out_neuron = prediction[target]
+        return -(np.log(out_neuron)).mean()
     
     def softmax(self,input):
 	# softmax activation function (slide #17 of Artificial Neuron presentation)
@@ -175,11 +177,14 @@ def import_MNIST():
     va_x, va_y = va
     te_x, te_y = te
     return (tr_x,tr_y,va_x,va_y,te_x,te_y)
+
+def format_target_set(target,):
+    out = np.zeros(np.shape(dataset))
       
 def main():
     # testing dataset :
     dataset = [[0,0],[0,1],[1,0],[1,1]]
-    y = np.array([[1,0],[0,1],[0,1],[1,0]])
+    y = np.array([0,1,1,0])
     
     # import MNIST dataset :
     #tr_x,tr_y,va_x,va_y,te_x,te_y = import_MNIST()
@@ -192,8 +197,7 @@ def main():
     classifier.display(display_weights)
 	
     out = classifier.forward(dataset,0)
-    cross_entropy_loss = classifier.cross_entropy(out[1],y[1])
-    
+    cross_entropy_loss = classifier.cross_entropy(out,y)
     
     
     print('\nOutputs :')
