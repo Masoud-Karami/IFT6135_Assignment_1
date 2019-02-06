@@ -37,7 +37,7 @@ class NN(object):
             bias = 0.0
             self.layers.append(Layer(bias,dims[l:l+2],init_mode))
     
-    def forward(self,input,labels):#..
+    def forward(self,input):
         # forward propagation of the NN
         
         # Input verifications
@@ -50,17 +50,11 @@ class NN(object):
         
         # propagate forward until output layer
         for l in range(self.n_hidden+1):
-            try:
-                # manage the case when multiple inputs
-                input = np.concatenate((np.ones([np.shape(input)[0],1]),input),axis=1)
-            except:
-                # manage the case when only one input
-                input = np.concatenate((np.ones(1),input))
-            output = input.dot(self.layers[l].weights)
+            output = self.layers[l].forward(input)
             if l < self.n_hidden:
                 input = self.activation(output)
             else:
-                return (self.softmax(output))
+                return self.softmax(output)
         
     def activation(self,input):
     # activation function (sigmoid / ReLU / Maxout / linear / or whatever)
@@ -170,7 +164,10 @@ class Layer:
             self.weights = np.zeros([dims[0],dims[1]])
         else:
             raise BadInit('Initializing function not valid, choose between GLOROT, NORMAL and ZERO')
-        self.weights = np.concatenate((np.ones([1,dims[1]])*bias,self.weights))
+        self.bias = bias
+    
+    def forward(self,inputs):
+        return inputs.dot(self.weights) + self.bias
     
     def display(self, layer_num):
         print('\nLayer %i parameters :' % layer_num)
@@ -191,7 +188,7 @@ def format_target_set(target,):
       
 def main():
     # testing dataset :
-    dataset = [[0,0],[0,1],[1,0],[1,1]]
+    dataset = np.array([[0,0],[0,1],[1,0],[1,1]])
     y = np.array([0,1,1,0])
     
     # import MNIST dataset :
@@ -204,7 +201,7 @@ def main():
     display_weights = False
     classifier.display(display_weights)
 	
-    out = classifier.forward(dataset,0)
+    out = classifier.forward(dataset)
     cross_entropy_loss = classifier.cross_entropy(out,y)
     
     cool = [1,2,3,4,5,6]
