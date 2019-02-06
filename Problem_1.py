@@ -33,9 +33,10 @@ class NN(object):
     
     def initialize_weights(self,n_hidden,dims,init_mode):
 	# either ZERO init / NORMAL DISTRIBUTION init / GLOROT init
-        for l in range(n_hidden+1):
-            bias = 0.0
+        bias = 0.0
+        for l in range(n_hidden):
             self.layers.append(Layer(bias,dims[l:l+2],init_mode))
+        self.layers.append(OutLayer(bias,dims[-2::],init_mode))
     
     def forward(self,input):
         # forward propagation of the NN
@@ -48,20 +49,11 @@ class NN(object):
             if len(input) != self.dims[0]:
                 raise BadInput('The number of inputs do not match the dimentions!')
         
-        # propagate forward until output layer
-        for l in range(self.n_hidden+1):
-            output = self.layers[l].forward(input)
-            if l < self.n_hidden:
-                input = self.activation(output)
-            else:
-                return self.softmax(output)
-        
-    def activation(self,input):
-    # activation function (sigmoid / ReLU / Maxout / linear / or whatever)
-	# input : vector with results of pre-activation of one layer
-	# output : vector with results of activation of the layer 
-        output = np.maximum(input,np.zeros(np.shape(input)))
-        return output
+        # propagate forward and activate each layer
+        for layer in self.layers:
+            output = layer.forward(input)
+            input = layer.activation(output)
+        return input
     
     def cross_entropy(self,prediction,target):
         # make sure the inputs are in valid range
@@ -74,15 +66,6 @@ class NN(object):
             # for when there is only one sample
             out_neuron = prediction[target]
         return -(np.log(out_neuron)).mean()
-    
-    def softmax(self,input):
-	# softmax activation function (slide #17 of Artificial Neuron presentation)
-	# the sum of the output vector will be = 1.
-        a = np.exp(input)
-        try:
-            return a/a.dot(np.ones([np.shape(input)[1], np.shape(input)[1]]))
-        except:
-            return a/a.sum()
 	
     def backward(self,cache,labels): #...
 	# backward propagation
@@ -169,11 +152,27 @@ class Layer:
     def forward(self,inputs):
         return inputs.dot(self.weights) + self.bias
     
+    def activation(self,inputs):
+        # activation function (sigmoid / ReLU / Maxout / linear / or whatever)
+        # ReLu activation function :
+        output = np.maximum(inputs,np.zeros(np.shape(inputs)))
+        return output
+    
     def display(self, layer_num):
         print('\nLayer %i parameters :' % layer_num)
-        print('Bias : %1.2f' % self.weights[0][0])
+        print('Bias : %1.2f' % self.bias)
         print('Weights :')
         print(self.weights[1::][::])
+
+class OutLayer(Layer): #subclass of Layer
+    def activation(self,inputs):
+        # softmax activation function (slide #17 of Artificial Neuron presentation)
+        # the sum of the output vector will be = 1.
+        a = np.exp(inputs)
+        try:
+            return a/a.dot(np.ones([np.shape(inputs)[1], np.shape(inputs)[1]]))
+        except:
+            return a/a.sum()
 
 def import_MNIST():
     with gzip.open('./data/mnist.pkl.gz', 'rb') as f:
@@ -203,10 +202,6 @@ def main():
 	
     out = classifier.forward(dataset)
     cross_entropy_loss = classifier.cross_entropy(out,y)
-    
-    cool = [1,2,3,4,5,6]
-    cool2 = [1,2,3,4,5,6]
-    classifier.shuffle_set(dataset,y)
     
     print('\nOutputs :')
     for o in out:
