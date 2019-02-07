@@ -38,22 +38,21 @@ class NN(object):
             self.layers.append(Layer(bias,dims[l:l+2],init_mode))
         self.layers.append(OutLayer(bias,dims[-2::],init_mode))
     
-    def forward(self,input):
+    def forward(self,inputs):
         # forward propagation of the NN
         
         # Input verifications
-        if np.ndim(input) == 2:
-            if np.shape(input)[1] != self.dims[0]:
+        if np.ndim(inputs) == 2:
+            if np.shape(inputs)[1] != self.dims[0]:
                 raise BadInput('The number of inputs do not match the dimentions!')
-        else:
-            if len(input) != self.dims[0]:
-                raise BadInput('The number of inputs do not match the dimentions!')
+        elif len(inputs) != self.dims[0]:
+            raise BadInput('The number of inputs do not match the dimentions!')
         
         # propagate forward and activate each layer
         for layer in self.layers:
-            output = layer.forward(input)
-            input = layer.activation(output)
-        return input
+            outputs = layer.forward(inputs)
+            inputs = layer.activation(outputs)
+        return inputs
     
     def cross_entropy(self,prediction,target):
         # make sure the inputs are in valid range
@@ -63,12 +62,12 @@ class NN(object):
         try:
             out_neuron = prediction[np.arange(prediction.shape[0]),target]
         except:
-            # for when there is only one sample
+            # for the case when there is only one sample
             out_neuron = prediction[target]
         return -(np.log(out_neuron)).mean()
 	
-    def backward(self,cache,labels): #...
-	# backward propagation
+    def backward(self,prediction,target): 
+        # backward propagation
         print("")
     
     def update(self,grads): #...
@@ -80,6 +79,7 @@ class NN(object):
         n_batch = int(len(training_set) / batch_size)
         
         for epoch in epochs:
+            self.shuffle_set(training_set,target_set)
             for b in range(n_batch):
                 tr_x = training_set[(b*batch_size):((b+1)*batch_size)]
                 tr_y = target_set[(b*batch_size):((b+1)*batch_size)]
@@ -103,8 +103,7 @@ class NN(object):
         path = "./Saved_models/"
         if filename is None:
             now = datetime.datetime.now()
-            filename = 'NN_' + str(now.year) + '_' + str(now.month) + '_' + str(now.day) + '_' + str(now.hour) + 'h' + str(now.minute) + 'm' + str(now.second) + 's'
-        
+            filename = 'NN_%i_%i_%i_%ih%im%is' % (now.year,now.month,now.day,now.hour,now.minute,now.second)
         with open(path+filename, 'wb') as f:
             pickle.dump([self.dims, self.n_hidden, self.layers], f)
             
@@ -155,24 +154,26 @@ class Layer:
     def activation(self,inputs):
         # activation function (sigmoid / ReLU / Maxout / linear / or whatever)
         # ReLu activation function :
-        output = np.maximum(inputs,np.zeros(np.shape(inputs)))
-        return output
+        self.outputs = np.maximum(inputs,np.zeros(np.shape(inputs)))
+        return self.outputs
     
     def display(self, layer_num):
         print('\nLayer %i parameters :' % layer_num)
         print('Bias : %1.2f' % self.bias)
         print('Weights :')
-        print(self.weights[1::][::])
+        print(self.weights)
 
 class OutLayer(Layer): #subclass of Layer
     def activation(self,inputs):
         # softmax activation function (slide #17 of Artificial Neuron presentation)
-        # the sum of the output vector will be = 1.
+        # the sum of the output vector(s) will be = 1.
         a = np.exp(inputs)
         try:
-            return a/a.dot(np.ones([np.shape(inputs)[1], np.shape(inputs)[1]]))
+            size = np.shape(inputs)[1]
+            self.outputs = a/a.dot(np.ones([size,size]))
         except:
-            return a/a.sum()
+            self.outputs = a/a.sum()
+        return self.outputs
 
 def import_MNIST():
     with gzip.open('./data/mnist.pkl.gz', 'rb') as f:
@@ -181,9 +182,6 @@ def import_MNIST():
     va_x, va_y = va
     te_x, te_y = te
     return (tr_x,tr_y,va_x,va_y,te_x,te_y)
-
-def format_target_set(target,):
-    out = np.zeros(np.shape(dataset))
       
 def main():
     # testing dataset :
@@ -193,11 +191,11 @@ def main():
     # import MNIST dataset :
     #tr_x,tr_y,va_x,va_y,te_x,te_y = import_MNIST()
     
-    classifier = NN((2,4,2), 1, 'GLOROT')
+    classifier = NN((2,4,3), 1, 'GLOROT')
     #classifier.save()
     #classifier = NN((1,4,1,1),2,'GLOROT','train',None,'NN_2019_1_31_13h10m16s')
     
-    display_weights = False
+    display_weights = True
     classifier.display(display_weights)
 	
     out = classifier.forward(dataset)
