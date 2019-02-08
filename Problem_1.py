@@ -195,7 +195,7 @@ def main():
     #classifier.save()
     #classifier = NN((1,4,1,1),2,'GLOROT','train',None,'NN_2019_1_31_13h10m16s')
     
-    display_weights = True
+    display_weights = False
     classifier.display(display_weights)
 	
     out = classifier.forward(dataset)
