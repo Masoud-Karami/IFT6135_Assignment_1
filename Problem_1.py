@@ -72,11 +72,6 @@ class NN(object):
         for l in self.layers[::-1]:
             gradient = l.backward(gradient,target,learning_rate)
             
-    
-    def update(self,grads): #...
-	# Upgrade the weights after backward propagation
-        print("")
-	
     def train(self,training,validation,batch_size,learning_rate=0.001,epochs=10):
         # split up the training and validation sets
         training_set, target_set = training
@@ -88,10 +83,9 @@ class NN(object):
             # validation set to see the progression
             pred = self.forward(validation)
             cross_entropy = self.cross_entropy(pred,validation_target)
-            decisions = pred.argmax(axis=1)
-            cost = (decisions == validation_target).mean()
-            print('likeligood : %1.3f' % cost)
-            print('Validation CE : %1.3f' % cross_entropy)            
+            likelihood = (pred.argmax(axis=1) == validation_target).mean() # mean of predictions gotten right
+            print('\nLikelihood : %1.3f' % likelihood)
+            print('Validation CE : %1.3f' % cross_entropy)
             self.shuffle_set(training_set,target_set)
             for b in range(n_batch):
                 tr_x = training_set[(b*batch_size):((b+1)*batch_size)]
@@ -232,14 +226,14 @@ def main():
     # import MNIST dataset :
     tr,va,te = import_MNIST()
     
-    classifier = NN((784,100,10), 1, 'GLOROT')
+    classifier = NN((784,550,300,10), 2, 'GLOROT')
     #classifier.save()
     #classifier = NN((1,4,1,1),2,'GLOROT','train',None,'NN_2019_1_31_13h10m16s')
     
     display_weights = False
-    #classifier.display(display_weights)
+    classifier.display(display_weights)
 	
-    classifier.train(tr,va,100,0.001,10)
+    classifier.train(tr,va,100,0.0003,10)
     
     classifier.save()
 
