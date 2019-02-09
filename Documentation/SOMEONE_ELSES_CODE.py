@@ -96,7 +96,7 @@ class Classification(object):
 
 
 def load_data():
-    with gzip.open('./data/mnist.pkl.gz', 'rb') as f:
+    with gzip.open('../data/mnist.pkl.gz', 'rb') as f:
         return pickle.load(f, encoding='latin-1')
  # Let's construct our MLP
 mlp = MLP([Linear(784, 100), Sigmoid(), Linear(100, 10), Softmax()])

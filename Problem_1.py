@@ -66,25 +66,38 @@ class NN(object):
             out_neuron = prediction[target]
         return -(np.log(out_neuron)).mean()
 	
-    def backward(self,prediction,target): 
+    def backward(self,prediction,target,learning_rate): 
         # backward propagation
-        print("")
+        gradient = prediction
+        for l in self.layers[::-1]:
+            gradient = l.backward(gradient,target,learning_rate)
+            
     
     def update(self,grads): #...
 	# Upgrade the weights after backward propagation
         print("")
 	
-    def train(self,training_set,target_set,batch_size,epochs=10):
+    def train(self,training,validation,batch_size,learning_rate=0.001,epochs=10):
+        # split up the training and validation sets
+        training_set, target_set = training
+        validation, validation_target = validation
         # split up the training set in batch size
         n_batch = int(len(training_set) / batch_size)
         
-        for epoch in epochs:
+        for epoch in range(epochs):
+            # validation set to see the progression
+            pred = self.forward(validation)
+            cross_entropy = self.cross_entropy(pred,validation_target)
+            decisions = pred.argmax(axis=1)
+            cost = (decisions == validation_target).mean()
+            print('likeligood : %1.3f' % cost)
+            print('Validation CE : %1.3f' % cross_entropy)            
             self.shuffle_set(training_set,target_set)
             for b in range(n_batch):
                 tr_x = training_set[(b*batch_size):((b+1)*batch_size)]
                 tr_y = target_set[(b*batch_size):((b+1)*batch_size)]
                 prediction = self.forward(tr_x)
-                # delta ?
+                self.backward(prediction,tr_y,learning_rate)
                 
     def shuffle_set(self,training_set,target_set):
         seed = np.random.randint(2**31)
@@ -146,9 +159,12 @@ class Layer:
             self.weights = np.zeros([dims[0],dims[1]])
         else:
             raise BadInit('Initializing function not valid, choose between GLOROT, NORMAL and ZERO')
-        self.bias = bias
+        self.bias = np.ones([1,dims[1]])*bias
     
     def forward(self,inputs):
+        self.inputs = []
+        self.outputs = []
+        self.inputs = inputs
         return inputs.dot(self.weights) + self.bias
     
     def activation(self,inputs):
@@ -157,9 +173,25 @@ class Layer:
         self.outputs = np.maximum(inputs,np.zeros(np.shape(inputs)))
         return self.outputs
     
+    def backward(self,gradients,target,learning_rate):
+        # gradient before activation :
+        # h = ReLU(a) | ReLU'(x) = sgn(ReLU(x)) | ReLU'(a) = sgn(h)
+        signs = np.sign(self.outputs)
+        gradients = gradients*signs
+        
+        grad_w = self.inputs.T.dot(gradients)
+        grad_b = gradients.sum(axis=0)
+        self.update(grad_w,grad_b,learning_rate)
+        return gradients.dot(self.weights.T)
+    
+    def update(self,grad_w,grad_b,learning_rate):
+        self.weights -= learning_rate*grad_w
+        self.bias -= learning_rate*grad_b
+    
     def display(self, layer_num):
         print('\nLayer %i parameters :' % layer_num)
-        print('Bias : %1.2f' % self.bias)
+        print('Bias :')
+        print(self.bias)
         print('Weights :')
         print(self.weights)
 
@@ -167,45 +199,49 @@ class OutLayer(Layer): #subclass of Layer
     def activation(self,inputs):
         # softmax activation function (slide #17 of Artificial Neuron presentation)
         # the sum of the output vector(s) will be = 1.
-        a = np.exp(inputs)
+        # NEED to substract the largest number to avoid INF number (causes problems in the algorithm)
+        a = np.exp(inputs - inputs.max(axis=1, keepdims=True))
         try:
             size = np.shape(inputs)[1]
-            self.outputs = a/a.dot(np.ones([size,size]))
+            outputs = a/a.dot(np.ones([size,size]))
         except:
-            self.outputs = a/a.sum()
-        return self.outputs
+            outputs = a/a.sum()
+        return outputs
+    
+    def backward(self,gradients,target,learning_rate):
+        # Output gradient :
+        e = np.zeros_like(gradients)
+        e[np.arange(e.shape[0]),target] = 1
+        gradients = -(e - gradients)
+        # Parameters gradient :
+        grad_w = self.inputs.T.dot(gradients)
+        grad_b = gradients.sum(axis=0)
+        self.update(grad_w,grad_b,learning_rate)
+        return gradients.dot(self.weights.T)
 
 def import_MNIST():
     with gzip.open('./data/mnist.pkl.gz', 'rb') as f:
         tr,va,te = pickle.load(f, encoding='latin-1')
-    tr_x, tr_y = tr
-    va_x, va_y = va
-    te_x, te_y = te
-    return (tr_x,tr_y,va_x,va_y,te_x,te_y)
+    return (tr,va,te)
       
 def main():
     # testing dataset :
-    dataset = np.array([[0,0],[0,1],[1,0],[1,1]])
-    y = np.array([0,1,1,0])
+    #dataset = np.array([[0,0],[0,1],[1,0],[1,1]])
+    #y = np.array([0,1,1,0])
     
     # import MNIST dataset :
-    #tr_x,tr_y,va_x,va_y,te_x,te_y = import_MNIST()
+    tr,va,te = import_MNIST()
     
-    classifier = NN((2,4,3), 1, 'GLOROT')
+    classifier = NN((784,100,10), 1, 'GLOROT')
     #classifier.save()
     #classifier = NN((1,4,1,1),2,'GLOROT','train',None,'NN_2019_1_31_13h10m16s')
     
     display_weights = False
-    classifier.display(display_weights)
+    #classifier.display(display_weights)
 	
-    out = classifier.forward(dataset)
-    cross_entropy_loss = classifier.cross_entropy(out,y)
+    classifier.train(tr,va,100,0.001,10)
     
-    print('\nOutputs :')
-    for o in out:
-        print(o)
-	
-    print('\nCross-entropy : %1.3f' % cross_entropy_loss)
+    classifier.save()
 
 if __name__ == '__main__':
     main()
