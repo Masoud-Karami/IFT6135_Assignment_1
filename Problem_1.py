@@ -84,8 +84,7 @@ class NN(object):
             pred = self.forward(validation)
             cross_entropy = self.cross_entropy(pred,validation_target)
             likelihood = (pred.argmax(axis=1) == validation_target).mean() # mean of predictions gotten right
-            print('\nLikelihood : %1.3f' % likelihood)
-            print('Validation CE : %1.3f' % cross_entropy)
+            print('Epoch %i\nLikelihood : %1.1f%%\nCross-Entropy : %1.3f\n-------------------------' % (epoch+1,likelihood*100,cross_entropy))
             self.shuffle_set(training_set,target_set)
             for b in range(n_batch):
                 tr_x = training_set[(b*batch_size):((b+1)*batch_size)]
@@ -219,23 +218,31 @@ def import_MNIST():
     return (tr,va,te)
       
 def main():
-    # testing dataset :
-    #dataset = np.array([[0,0],[0,1],[1,0],[1,1]])
-    #y = np.array([0,1,1,0])
+    # testing dataset (XOR) :
+    #tr_x = np.array([[0,0],[0,1],[1,0],[1,1]])
+    #tr_y = np.array([0,1,1,0])
+    
+    # hyperparameters :
+    hid_layer_1 = 550
+    hid_layer_2 = 300
+    init_method = 'GLOROT'
+    batch_size = 100
+    epochs = 10
+    learning_rate = 0.0006
+    display_weights = False
     
     # import MNIST dataset :
     tr,va,te = import_MNIST()
     
-    classifier = NN((784,550,300,10), 2, 'GLOROT')
-    #classifier.save()
+    # initialize the neural network :
+    classifier = NN((784,hid_layer_1,hid_layer_2,10), 2, init_method)
     #classifier = NN((1,4,1,1),2,'GLOROT','train',None,'NN_2019_1_31_13h10m16s')
     
-    display_weights = False
+    # start the training :
+    classifier.train(tr,va,batch_size,learning_rate,epochs)
     classifier.display(display_weights)
-	
-    classifier.train(tr,va,100,0.0003,10)
     
-    classifier.save()
+    #classifier.save()
 
 if __name__ == '__main__':
     main()
