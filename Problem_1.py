@@ -4,6 +4,7 @@
 # pXXXXXXX Narges Salehi
 
 # UdeM, IFT6135, Assignment 1, H2019
+# PROBLEM 1
 
 import datetime
 import numpy as np
@@ -83,12 +84,12 @@ class NN(object):
         likelihood = [[],[]]
         loss = [[],[]]
         pred = self.forward(validation)
-        likelihood[0].append((pred.argmax(axis=1) == validation_target).mean())
+        likelihood[0].append((pred.argmax(axis=1) == validation_target).mean()*100)
         loss[0].append(self.cross_entropy(pred,validation_target))
-        print('Epoch %i\nLikelihood : %1.1f%%\nCross-Entropy : %1.3f\n-------------------------' % (0,likelihood[0][-1]*100,loss[0][-1]))
+        print('Epoch %i\nLikelihood : %1.1f%%\nCross-Entropy : %1.3f\n-------------------------' % (0,likelihood[0][-1],loss[0][-1]))
         pred_train = self.forward(training_set)
         loss[1].append(self.cross_entropy(pred_train,target_set))
-        likelihood[1].append((pred_train.argmax(axis=1) == target_set).mean())
+        likelihood[1].append((pred_train.argmax(axis=1) == target_set).mean()*100)
         
         for epoch in range(epochs):
             self.shuffle_set(training_set,target_set)
@@ -100,11 +101,11 @@ class NN(object):
             # validation set to see the progression
             pred = self.forward(validation)
             loss[0].append(self.cross_entropy(pred,validation_target))
-            likelihood[0].append((pred.argmax(axis=1) == validation_target).mean()) # mean of predictions gotten right
-            print('Epoch %i\nLikelihood : %1.1f%%\nCross-Entropy : %1.3f\n-------------------------' % (epoch+1,likelihood[0][-1]*100,loss[0][-1]))
+            likelihood[0].append((pred.argmax(axis=1) == validation_target).mean()*100) # mean of predictions gotten right
+            print('Epoch %i\nLikelihood : %1.1f%%\nCross-Entropy : %1.3f\n-------------------------' % (epoch+1,likelihood[0][-1],loss[0][-1]))
             pred_train = self.forward(training_set)
             loss[1].append(self.cross_entropy(pred_train,target_set))
-            likelihood[1].append((pred_train.argmax(axis=1) == target_set).mean())
+            likelihood[1].append((pred_train.argmax(axis=1) == target_set).mean()*100)
         return (loss, likelihood)
                 
     def shuffle_set(self,training_set,target_set):
@@ -114,10 +115,6 @@ class NN(object):
         np.random.seed(seed)
         np.random.shuffle(target_set)
         np.random.seed()
-        
-    def test(self,epoch=10):
-	# test the non-training dataset and output the accuracy rate...
-    	print("")
         
     def save(self,filename=None):
         # saves the weights and structure of the current NN
@@ -228,23 +225,31 @@ class OutLayer(Layer): #subclass of Layer
         self.update(grad_w,grad_b,learning_rate)
         return gradients.dot(self.weights.T)
 
-def display_graph(loss, likelihood):
+def display_graph(loss,likelihood,title):
+    x = np.arange(len(loss[0]))
+    
     # plot the loss over epochs
-    plt.plot(loss[1], label = "training")
-    plt.plot(loss[0], label = "validation")
-    plt.xlabel('epochs')
-    plt.ylabel('loss')
-    plt.title('Cross-entropy over epochs')
+    plt.plot(x,loss[1], label = "training", linestyle='dashed')
+    plt.plot(x,loss[0], label = "validation")
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.title('Loss over training time with '+title)
+    plt.grid(True)
     plt.legend()
+    plt.savefig('./Outputs/Problem_1/loss_'+title+'.png')
+    plt.savefig('./Outputs/Problem_1/loss_'+title+'.eps')
     plt.show()
     
     # plot the likelihood over epochs
-    plt.plot(likelihood[1], label = "training")
-    plt.plot(likelihood[0], label = "validation")
-    plt.xlabel('epochs')
-    plt.ylabel('likelihood')
-    plt.title('Likelihood over epochs')
+    plt.plot(x,likelihood[1], label = "training", linestyle='dashed')
+    plt.plot(x,likelihood[0], label = "validation")
+    plt.xlabel('Epochs')
+    plt.ylabel('Likelihood (%)')
+    plt.title('Likelihood over training time with '+title)
+    plt.grid(True)
     plt.legend()
+    plt.savefig('./Outputs/Problem_1/likelihood_'+title+'.png')
+    plt.savefig('./Outputs/Problem_1/likelihood_'+title+'.eps')
     plt.show()
     
 
@@ -263,7 +268,7 @@ def main():
     hid_layer_2 = 300
     init_method = 'GLOROT'
     batch_size = 100
-    epochs = 4
+    epochs = 3
     learning_rate = 0.0003
     display_weights = False
     
@@ -281,7 +286,7 @@ def main():
     loss,likelihood = classifier.train(tr,va,batch_size,learning_rate,epochs)
     
     # Display the loss and likelihood over epochs number
-    display_graph(loss,likelihood)
+    display_graph(loss,likelihood,init_method.lower)
     
     #classifier.save()
 
