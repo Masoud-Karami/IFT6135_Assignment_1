@@ -21,7 +21,7 @@ class BadInput(Exception):
 
 class NN(object):
     
-    def __init__(self,dims=(784,1024,2048,10),n_hidden=2,init_mode='GLOROT',mode='train',datapath=None,model_path=None):
+    def __init__(self,dims=(784,1024,2048,10),n_hidden=2,init_mode='GLOROT',mode='train',model_path=None):
         
         if model_path is None:
             if n_hidden+2 != len(dims):
@@ -160,7 +160,7 @@ class Layer:
         if init_mode.upper() == 'GLOROT':
             self.weights = np.random.uniform(-d,d,[dims[0],dims[1]])
         elif init_mode.upper() == 'NORMAL':
-            self.weights = np.random.randn(dims[0],dims[1]) #here instead of random, put the normal random function or whatever else
+            self.weights = np.random.normal(0,1,[dims[0],dims[1]]) # here instead of random, put the normal random function or whatever else
         elif init_mode.upper() == 'ZERO':
             self.weights = np.zeros([dims[0],dims[1]])
         else:
@@ -209,6 +209,7 @@ class OutLayer(Layer): #subclass of Layer
         a = np.exp(inputs - inputs.max(axis=1, keepdims=True))
         try:
             size = np.shape(inputs)[1]
+            outputs = a / a.sum(axis=1,keepdims=True)
             outputs = a/a.dot(np.ones([size,size]))
         except:
             outputs = a/a.sum()
@@ -225,7 +226,7 @@ class OutLayer(Layer): #subclass of Layer
         self.update(grad_w,grad_b,learning_rate)
         return gradients.dot(self.weights.T)
 
-def display_graph(loss,likelihood,title):
+def display_graph(loss,likelihood,title_):
     x = np.arange(len(loss[0]))
     
     # plot the loss over epochs
@@ -233,11 +234,11 @@ def display_graph(loss,likelihood,title):
     plt.plot(x,loss[0], label = "validation")
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
-    plt.title('Loss over training time with '+title)
+    plt.title('Loss over training time with '+title_)
     plt.grid(True)
     plt.legend()
-    plt.savefig('./Outputs/Problem_1/loss_'+title+'.png')
-    plt.savefig('./Outputs/Problem_1/loss_'+title+'.eps')
+    plt.savefig('./Outputs/Problem_1/loss_'+title_+'.png')
+    plt.savefig('./Outputs/Problem_1/loss_'+title_+'.eps')
     plt.show()
     
     # plot the likelihood over epochs
@@ -245,11 +246,11 @@ def display_graph(loss,likelihood,title):
     plt.plot(x,likelihood[0], label = "validation")
     plt.xlabel('Epochs')
     plt.ylabel('Likelihood (%)')
-    plt.title('Likelihood over training time with '+title)
+    plt.title('Likelihood over training time with '+title_)
     plt.grid(True)
     plt.legend()
-    plt.savefig('./Outputs/Problem_1/likelihood_'+title+'.png')
-    plt.savefig('./Outputs/Problem_1/likelihood_'+title+'.eps')
+    plt.savefig('./Outputs/Problem_1/likelihood_'+title_+'.png')
+    plt.savefig('./Outputs/Problem_1/likelihood_'+title_+'.eps')
     plt.show()
     
 
@@ -257,6 +258,36 @@ def import_MNIST():
     with gzip.open('./data/mnist.pkl.gz', 'rb') as f:
         tr,va,te = pickle.load(f, encoding='latin-1')
     return (tr,va,te)
+
+def test_init_methods(hid_layer_1,hid_layer_2,batch_size,epochs,learning_rate,tr,va):
+    # initialize the neural networks :
+    classifier_zero = NN((784,hid_layer_1,hid_layer_2,10), 2, 'ZERO')
+    classifier_normal = NN((784,hid_layer_1,hid_layer_2,10), 2, 'NORMAL')
+    classifier_glorot = NN((784,hid_layer_1,hid_layer_2,10), 2, 'GLOROT')
+    
+    # start the trainings :
+    loss_zero,likelihood_zero = classifier_zero.train(tr,va,batch_size,learning_rate,epochs)
+    loss_normal,likelihood_normal = classifier_normal.train(tr,va,batch_size,learning_rate,epochs)
+    loss_glorot,likelihood_glorot = classifier_glorot.train(tr,va,batch_size,learning_rate,epochs)
+    
+    # Display the loss and likelihood over epochs number
+    display_graph(loss_zero,likelihood_zero,'zero')
+    display_graph(loss_normal,likelihood_normal,'normal')
+    display_graph(loss_glorot,likelihood_glorot,'glorot')
+    
+    # loss over training time of different init : 
+    x = np.arange(len(loss_zero[0]))
+    plt.plot(x,loss_zero[0], label = "Zero")
+    plt.plot(x,loss_normal[0], label = "Normal")
+    plt.plot(x,loss_glorot[0], label = "Glorot")
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.title('Loss over training time for each initialization methods')
+    plt.grid(True)
+    plt.legend()
+    plt.savefig('./Outputs/Problem_1/loss_init_methods.png')
+    plt.savefig('./Outputs/Problem_1/loss_init_methods.eps')
+    plt.show()
       
 def main():
     # testing dataset (XOR) :
@@ -268,16 +299,19 @@ def main():
     hid_layer_2 = 300
     init_method = 'GLOROT'
     batch_size = 100
-    epochs = 3
+    epochs = 2
     learning_rate = 0.0003
     display_weights = False
     
     # import MNIST dataset :
     tr,va,te = import_MNIST()
     
+    # start the training of each init methods and create the comparison graph :
+    #test_init_methods(hid_layer_1,hid_layer_2,batch_size,epochs,learning_rate,tr,va)
+    
     # initialize the neural network :
     classifier = NN((784,hid_layer_1,hid_layer_2,10), 2, init_method)
-    #classifier = NN((1,4,1,1),2,'GLOROT','train',None,'NN_2019_1_31_13h10m16s')
+    #classifier = NN((1,4,1,1),2,'GLOROT','train','NN_2019_1_31_13h10m16s')
     
     # Display the model parameters : 
     classifier.display(display_weights)
@@ -286,9 +320,8 @@ def main():
     loss,likelihood = classifier.train(tr,va,batch_size,learning_rate,epochs)
     
     # Display the loss and likelihood over epochs number
-    display_graph(loss,likelihood,init_method.lower)
+    #display_graph(loss,likelihood,init_method.lower())
     
-	
     #classifier.save()
 
 if __name__ == '__main__':
