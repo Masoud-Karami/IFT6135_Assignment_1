@@ -9,6 +9,7 @@ import datetime
 import numpy as np
 import pickle
 import gzip
+import matplotlib.pyplot as plt 
 
 class BadInit(Exception):
     """Something in the initialization is wrong"""
@@ -79,18 +80,32 @@ class NN(object):
         # split up the training set in batch size
         n_batch = int(len(training_set) / batch_size)
         
+        likelihood = [[],[]]
+        loss = [[],[]]
+        pred = self.forward(validation)
+        likelihood[0].append((pred.argmax(axis=1) == validation_target).mean())
+        loss[0].append(self.cross_entropy(pred,validation_target))
+        print('Epoch %i\nLikelihood : %1.1f%%\nCross-Entropy : %1.3f\n-------------------------' % (0,likelihood[0][-1]*100,loss[0][-1]))
+        pred_train = self.forward(training_set)
+        loss[1].append(self.cross_entropy(pred_train,target_set))
+        likelihood[1].append((pred_train.argmax(axis=1) == target_set).mean())
+        
         for epoch in range(epochs):
-            # validation set to see the progression
-            pred = self.forward(validation)
-            cross_entropy = self.cross_entropy(pred,validation_target)
-            likelihood = (pred.argmax(axis=1) == validation_target).mean() # mean of predictions gotten right
-            print('Epoch %i\nLikelihood : %1.1f%%\nCross-Entropy : %1.3f\n-------------------------' % (epoch+1,likelihood*100,cross_entropy))
             self.shuffle_set(training_set,target_set)
             for b in range(n_batch):
                 tr_x = training_set[(b*batch_size):((b+1)*batch_size)]
                 tr_y = target_set[(b*batch_size):((b+1)*batch_size)]
                 prediction = self.forward(tr_x)
                 self.backward(prediction,tr_y,learning_rate)
+            # validation set to see the progression
+            pred = self.forward(validation)
+            loss[0].append(self.cross_entropy(pred,validation_target))
+            likelihood[0].append((pred.argmax(axis=1) == validation_target).mean()) # mean of predictions gotten right
+            print('Epoch %i\nLikelihood : %1.1f%%\nCross-Entropy : %1.3f\n-------------------------' % (epoch+1,likelihood[0][-1]*100,loss[0][-1]))
+            pred_train = self.forward(training_set)
+            loss[1].append(self.cross_entropy(pred_train,target_set))
+            likelihood[1].append((pred_train.argmax(axis=1) == target_set).mean())
+        return (loss, likelihood)
                 
     def shuffle_set(self,training_set,target_set):
         seed = np.random.randint(2**31)
@@ -140,6 +155,7 @@ class NN(object):
         if display_weights:
             for l in range(self.n_hidden+1):
                 self.layers[l].display(l+1)
+        print()
         
 class Layer:
     def __init__(self, bias, dims, init_mode):
@@ -212,6 +228,26 @@ class OutLayer(Layer): #subclass of Layer
         self.update(grad_w,grad_b,learning_rate)
         return gradients.dot(self.weights.T)
 
+def display_graph(loss, likelihood):
+    # plot the loss over epochs
+    plt.plot(loss[1], label = "training")
+    plt.plot(loss[0], label = "validation")
+    plt.xlabel('epochs')
+    plt.ylabel('loss')
+    plt.title('Cross-entropy over epochs')
+    plt.legend()
+    plt.show()
+    
+    # plot the likelihood over epochs
+    plt.plot(loss[1], label = "training")
+    plt.plot(loss[0], label = "validation")
+    plt.xlabel('epochs')
+    plt.ylabel('loss')
+    plt.title('Cross-entropy over epochs')
+    plt.legend()
+    plt.show()
+    
+
 def import_MNIST():
     with gzip.open('./data/mnist.pkl.gz', 'rb') as f:
         tr,va,te = pickle.load(f, encoding='latin-1')
@@ -228,7 +264,7 @@ def main():
     init_method = 'GLOROT'
     batch_size = 100
     epochs = 10
-    learning_rate = 0.0006
+    learning_rate = 0.0003
     display_weights = False
     
     # import MNIST dataset :
@@ -238,9 +274,14 @@ def main():
     classifier = NN((784,hid_layer_1,hid_layer_2,10), 2, init_method)
     #classifier = NN((1,4,1,1),2,'GLOROT','train',None,'NN_2019_1_31_13h10m16s')
     
-    # start the training :
-    classifier.train(tr,va,batch_size,learning_rate,epochs)
+    # Display the model parameters : 
     classifier.display(display_weights)
+    
+    # start the training :
+    loss,likelihood = classifier.train(tr,va,batch_size,learning_rate,epochs)
+    
+    # Display the loss and likelihood over epochs number
+    display_graph(loss,likelihood)
     
     #classifier.save()
 
