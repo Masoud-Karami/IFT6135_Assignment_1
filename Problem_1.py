@@ -239,11 +239,11 @@ def display_graph(loss, likelihood):
     plt.show()
     
     # plot the likelihood over epochs
-    plt.plot(loss[1], label = "training")
-    plt.plot(loss[0], label = "validation")
+    plt.plot(likelihood[1], label = "training")
+    plt.plot(likelihood[0], label = "validation")
     plt.xlabel('epochs')
-    plt.ylabel('loss')
-    plt.title('Cross-entropy over epochs')
+    plt.ylabel('likelihood')
+    plt.title('Likelihood over epochs')
     plt.legend()
     plt.show()
     
@@ -263,7 +263,7 @@ def main():
     hid_layer_2 = 300
     init_method = 'GLOROT'
     batch_size = 100
-    epochs = 10
+    epochs = 4
     learning_rate = 0.0003
     display_weights = False
     
