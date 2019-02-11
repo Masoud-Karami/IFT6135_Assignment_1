@@ -288,6 +288,7 @@ def main():
     # Display the loss and likelihood over epochs number
     display_graph(loss,likelihood,init_method.lower)
     
+	
     #classifier.save()
 
 if __name__ == '__main__':
