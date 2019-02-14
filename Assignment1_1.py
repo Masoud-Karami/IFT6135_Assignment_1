@@ -9,7 +9,7 @@ Created on Thu Jan 31 13:27:11 2019
 # Authors:
 # p1220459 Mathieu Champagne
 # pXXXXXXX Masoud Karami
-# pXXXXXXX Narges Salehi
+# p1220468 Narges Salehi
 
 # UdeM, IFT6135, Assignment 1, H2019
 
