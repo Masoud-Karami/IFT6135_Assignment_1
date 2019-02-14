@@ -1,7 +1,7 @@
 # Authors:
 # p1220459 Mathieu Champagne
 # pXXXXXXX Masoud Karami
-# pXXXXXXX Narges Salehi
+# p1220468 Narges Salehi
 
 # UdeM, IFT6135, Assignment 1, H2019
 # PROBLEM 1
