@@ -99,7 +99,7 @@ def load_data():
     with gzip.open('../data/mnist.pkl.gz', 'rb') as f:
         return pickle.load(f, encoding='latin-1')
  # Let's construct our MLP
-mlp = MLP([Linear(784, 100), Sigmoid(), Linear(100, 10), Softmax()])
+mlp = MLP([Linear(784, 1000), Sigmoid(), Linear(1000,50), Sigmoid(), Linear(50, 10), Softmax()])
 
 train_set, valid_set, test_set = load_data()
 train_X, train_y = train_set

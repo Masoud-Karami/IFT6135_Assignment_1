@@ -21,7 +21,7 @@ class BadInput(Exception):
 
 class NN(object):
     
-    def __init__(self,dims=(784,1024,2048,10),n_hidden=2,init_mode='GLOROT',mode='train',model_path=None):
+    def __init__(self,dims=(784,1024,2048,10),n_hidden=2,init_mode='GLOROT',model_path=None):
         
         if model_path is None:
             if n_hidden+2 != len(dims):
@@ -37,17 +37,14 @@ class NN(object):
 	# either ZERO init / NORMAL DISTRIBUTION init / GLOROT init
         bias = 0.0
         for l in range(n_hidden):
-            self.layers.append(Layer(bias,dims[l:l+2],init_mode))
+            self.layers.append(Sigmoid(bias,dims[l:l+2],init_mode))
         self.layers.append(OutLayer(bias,dims[-2::],init_mode))
     
     def forward(self,inputs):
         # forward propagation of the NN
         
         # Input verifications
-        if np.ndim(inputs) == 2:
-            if np.shape(inputs)[1] != self.dims[0]:
-                raise BadInput('The number of inputs do not match the dimentions!')
-        elif len(inputs) != self.dims[0]:
+        if np.shape(inputs)[1] != self.dims[0]:
             raise BadInput('The number of inputs do not match the dimentions!')
         
         # propagate forward and activate each layer
@@ -60,13 +57,12 @@ class NN(object):
         # make sure the inputs are in valid range
         if np.any(prediction < 0) or np.any(target < 0):
             raise ValueError('Negative prediction or target values')
-        np.clip(prediction,1e-12,1)
-        try:
-            out_neuron = prediction[np.arange(prediction.shape[0]),target]
-        except:
-            # for the case when there is only one sample
-            out_neuron = prediction[target]
-        return -(np.log(out_neuron)).mean()
+        prediction = np.clip(prediction,1e-9,1)
+        out_neuron = prediction[np.arange(prediction.shape[0]),target]
+        output = -(np.log(out_neuron)).mean()
+        if (np.any(np.isnan(output)) or np.any(np.isinf(output))):
+            print ("CROSS-ENTROPY")
+        return output
 	
     def backward(self,prediction,target,learning_rate): 
         # backward propagation
@@ -106,6 +102,12 @@ class NN(object):
             pred_train = self.forward(training_set)
             loss[1].append(self.cross_entropy(pred_train,target_set))
             likelihood[1].append((pred_train.argmax(axis=1) == target_set).mean()*100)
+            #if likelihood[0][-1] >= 90.0:
+            #    learning_rate = 0.0005
+            #if likelihood[0][-1] >= 94.3:
+            #    learning_rate = 0.0002
+            #if likelihood[0][-1] >= 95.5:
+            #    learning_rate = 0.00008
         return (loss, likelihood)
                 
     def shuffle_set(self,training_set,target_set):
@@ -160,7 +162,8 @@ class Layer:
         if init_mode.upper() == 'GLOROT':
             self.weights = np.random.uniform(-d,d,[dims[0],dims[1]])
         elif init_mode.upper() == 'NORMAL':
-            self.weights = np.random.normal(0,1,[dims[0],dims[1]]) # here instead of random, put the normal random function or whatever else
+            #self.weights = np.random.normal(0,1,[dims[0],dims[1]])
+            self.weights = np.random.randn(dims[0],dims[1])
         elif init_mode.upper() == 'ZERO':
             self.weights = np.zeros([dims[0],dims[1]])
         else:
@@ -171,24 +174,10 @@ class Layer:
         self.inputs = []
         self.outputs = []
         self.inputs = inputs
-        return inputs.dot(self.weights) + self.bias
-    
-    def activation(self,inputs):
-        # activation function (sigmoid / ReLU / Maxout / linear / or whatever)
-        # ReLu activation function :
-        self.outputs = np.maximum(inputs,np.zeros(np.shape(inputs)))
-        return self.outputs
-    
-    def backward(self,gradients,target,learning_rate):
-        # gradient before activation :
-        # h = ReLU(a) | ReLU'(x) = sgn(ReLU(x)) | ReLU'(a) = sgn(h)
-        signs = np.sign(self.outputs)
-        gradients = gradients*signs
-        
-        grad_w = self.inputs.T.dot(gradients)
-        grad_b = gradients.sum(axis=0)
-        self.update(grad_w,grad_b,learning_rate)
-        return gradients.dot(self.weights.T)
+        output = inputs.dot(self.weights) + self.bias
+        if (np.any(np.isnan(output)) or np.any(np.isinf(output))):
+            print ("LAYER FORWARD")
+        return output
     
     def update(self,grad_w,grad_b,learning_rate):
         self.weights -= learning_rate*grad_w
@@ -201,18 +190,59 @@ class Layer:
         print('Weights :')
         print(self.weights)
 
+class Sigmoid(Layer):
+    def activation(self,inputs):
+        # activation function (sigmoid / ReLU / Maxout / linear / or whatever)
+        # ReLu activation function :
+        self.outputs = 1 / (1 + np.exp(-inputs))
+        if (np.any(np.isnan(self.outputs)) or np.any(np.isinf(self.outputs))):
+            print ("LAYER ACTIVATION")
+        return self.outputs
+    
+    def backward(self,gradients,target,learning_rate):
+        # gradient before activation :
+        gradients = gradients*self.outputs*(1 - self.outputs)
+        
+        grad_w = self.inputs.T.dot(gradients)
+        grad_b = gradients.sum(axis=0)
+        self.update(grad_w,grad_b,learning_rate)
+        return gradients.dot(self.weights.T)
+
+class ReLU(Layer):
+    def activation(self,inputs):
+        # activation function (sigmoid / ReLU / Maxout / linear / or whatever)
+        # ReLu activation function :
+        #self.outputs = np.maximum(inputs,np.zeros(np.shape(inputs)))
+        self.outputs = np.clip(inputs*1.7,0,1000)
+        if (np.any(np.isnan(self.outputs)) or np.any(np.isinf(self.outputs))):
+            print ("LAYER ACTIVATION")
+        return self.outputs
+    
+    def backward(self,gradients,target,learning_rate):
+        # gradient before activation :
+        # h = ReLU(a) | ReLU'(x) = sgn(ReLU(x)) | ReLU'(a) = sgn(h)
+        signs = np.sign(self.outputs)
+        gradients = gradients*signs
+        
+        grad_w = self.inputs.T.dot(gradients)
+        grad_b = gradients.sum(axis=0)
+        if (np.any(np.isnan(grad_w)) or np.any(np.isnan(grad_b)) or np.any(np.isinf(grad_w)) or np.any(np.isinf(grad_b))):
+            print ("LAYER BACKWARD")
+        self.update(grad_w,grad_b,learning_rate)
+        #return np.clip(gradients.dot(self.weights.T),-10,10)
+        return gradients.dot(self.weights.T)
+
 class OutLayer(Layer): #subclass of Layer
     def activation(self,inputs):
         # softmax activation function (slide #17 of Artificial Neuron presentation)
         # the sum of the output vector(s) will be = 1.
         # NEED to substract the largest number to avoid INF number (causes problems in the algorithm)
         a = np.exp(inputs - inputs.max(axis=1, keepdims=True))
-        try:
-            size = np.shape(inputs)[1]
-            outputs = a / a.sum(axis=1,keepdims=True)
-            outputs = a/a.dot(np.ones([size,size]))
-        except:
-            outputs = a/a.sum()
+        size = np.shape(inputs)[1]
+        outputs = a / a.sum(axis=1,keepdims=True)
+        #outputs = a/a.dot(np.ones([size,size]))
+        if (np.any(np.isnan(outputs)) or np.any(np.isinf(outputs))):
+            print ("OUTLAYER ACTIVATION")
         return outputs
     
     def backward(self,gradients,target,learning_rate):
@@ -223,7 +253,10 @@ class OutLayer(Layer): #subclass of Layer
         # Parameters gradient :
         grad_w = self.inputs.T.dot(gradients)
         grad_b = gradients.sum(axis=0)
+        if (np.any(np.isnan(grad_w)) or np.any(np.isnan(grad_b)) or np.any(np.isinf(grad_w)) or np.any(np.isinf(grad_b))):
+            print ("OUTLAYER BACKWARD")
         self.update(grad_w,grad_b,learning_rate)
+        #return np.clip(gradients.dot(self.weights.T),-10,10)
         return gradients.dot(self.weights.T)
 
 def display_graph(loss,likelihood,title_):
@@ -296,28 +329,28 @@ def main():
     
     # hyperparameters :
     hid_layer_1 = 550
-    hid_layer_2 = 300
-    init_method = 'GLOROT'
+    hid_layer_2 = 150
+    init_method = 'NORMAL'
     batch_size = 100
-    epochs = 2
-    learning_rate = 0.0003
+    epochs = 10
+    learning_rate = 0.001
     display_weights = False
     
     # import MNIST dataset :
     tr,va,te = import_MNIST()
     
     # start the training of each init methods and create the comparison graph :
-    #test_init_methods(hid_layer_1,hid_layer_2,batch_size,epochs,learning_rate,tr,va)
+    test_init_methods(550,150,100,10,0.001,tr,va)
     
     # initialize the neural network :
-    classifier = NN((784,hid_layer_1,hid_layer_2,10), 2, init_method)
-    #classifier = NN((1,4,1,1),2,'GLOROT','train','NN_2019_1_31_13h10m16s')
+    #classifier = NN((784,hid_layer_1,hid_layer_2,10), 2, init_method)
+    #classifier = NN((1,4,1,1),2,'GLOROT','NN_2019_1_31_13h10m16s')
     
     # Display the model parameters : 
-    classifier.display(display_weights)
+    #classifier.display(display_weights)
     
     # start the training :
-    loss,likelihood = classifier.train(tr,va,batch_size,learning_rate,epochs)
+    #loss,likelihood = classifier.train(tr,va,batch_size,learning_rate,epochs)
     
     # Display the loss and likelihood over epochs number
     #display_graph(loss,likelihood,init_method.lower())
