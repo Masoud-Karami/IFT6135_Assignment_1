@@ -37,7 +37,7 @@ class NN(object):
 	# either ZERO init / NORMAL DISTRIBUTION init / GLOROT init
         bias = 0.0
         for l in range(n_hidden):
-            self.layers.append(Sigmoid(bias,dims[l:l+2],init_mode))
+            self.layers.append(ReLU(bias,dims[l:l+2],init_mode))
         self.layers.append(OutLayer(bias,dims[-2::],init_mode))
     
     def forward(self,inputs):
@@ -213,7 +213,7 @@ class ReLU(Layer):
         # activation function (sigmoid / ReLU / Maxout / linear / or whatever)
         # ReLu activation function :
         #self.outputs = np.maximum(inputs,np.zeros(np.shape(inputs)))
-        self.outputs = np.clip(inputs*1.7,0,1000)
+        self.outputs = np.clip(inputs*1.7,0,100)
         if (np.any(np.isnan(self.outputs)) or np.any(np.isinf(self.outputs))):
             print ("LAYER ACTIVATION")
         return self.outputs
@@ -260,9 +260,11 @@ class OutLayer(Layer): #subclass of Layer
         return gradients.dot(self.weights.T)
 
 def display_graph(loss,likelihood,title_):
+    plt.close('all')
     x = np.arange(len(loss[0]))
     
     # plot the loss over epochs
+    plt.figure(1)
     plt.plot(x,loss[1], label = "training", linestyle='dashed')
     plt.plot(x,loss[0], label = "validation")
     plt.xlabel('Epochs')
@@ -270,11 +272,12 @@ def display_graph(loss,likelihood,title_):
     plt.title('Loss over training time with '+title_)
     plt.grid(True)
     plt.legend()
-    plt.savefig('./Outputs/Problem_1/loss_'+title_+'.png')
-    plt.savefig('./Outputs/Problem_1/loss_'+title_+'.eps')
+    plt.savefig('./Outputs/Problem_1/loss_'+title_.replace(" ", "_")+'.png')
+    plt.savefig('./Outputs/Problem_1/loss_'+title_.replace(" ", "_")+'.eps')
     plt.show()
     
     # plot the likelihood over epochs
+    plt.figure(2)
     plt.plot(x,likelihood[1], label = "training", linestyle='dashed')
     plt.plot(x,likelihood[0], label = "validation")
     plt.xlabel('Epochs')
@@ -282,9 +285,10 @@ def display_graph(loss,likelihood,title_):
     plt.title('Likelihood over training time with '+title_)
     plt.grid(True)
     plt.legend()
-    plt.savefig('./Outputs/Problem_1/likelihood_'+title_+'.png')
-    plt.savefig('./Outputs/Problem_1/likelihood_'+title_+'.eps')
+    plt.savefig('./Outputs/Problem_1/likelihood_'+title_.replace(" ", "_")+'.png')
+    plt.savefig('./Outputs/Problem_1/likelihood_'+title_.replace(" ", "_")+'.eps')
     plt.show()
+    
     
 
 def import_MNIST():
@@ -328,32 +332,32 @@ def main():
     #tr_y = np.array([0,1,1,0])
     
     # hyperparameters :
-    hid_layer_1 = 550
+    hid_layer_1 = 650
     hid_layer_2 = 150
-    init_method = 'NORMAL'
+    init_method = 'GLOROT'
     batch_size = 100
-    epochs = 10
-    learning_rate = 0.001
+    epochs = 1
+    learning_rate = 0.00025
     display_weights = False
     
     # import MNIST dataset :
     tr,va,te = import_MNIST()
     
     # start the training of each init methods and create the comparison graph :
-    test_init_methods(550,150,100,10,0.001,tr,va)
+    #test_init_methods(550,150,100,10,0.001,tr,va)
     
     # initialize the neural network :
-    #classifier = NN((784,hid_layer_1,hid_layer_2,10), 2, init_method)
+    classifier = NN((784,hid_layer_1,hid_layer_2,10), 2, init_method)
     #classifier = NN((1,4,1,1),2,'GLOROT','NN_2019_1_31_13h10m16s')
     
     # Display the model parameters : 
-    #classifier.display(display_weights)
+    classifier.display(display_weights)
     
     # start the training :
-    #loss,likelihood = classifier.train(tr,va,batch_size,learning_rate,epochs)
+    loss,likelihood = classifier.train(tr,va,batch_size,learning_rate,epochs)
     
     # Display the loss and likelihood over epochs number
-    #display_graph(loss,likelihood,init_method.lower())
+    display_graph(loss,likelihood,init_method.lower()+" and stuff")
     
     #classifier.save()
 
