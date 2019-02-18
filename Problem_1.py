@@ -1,6 +1,6 @@
 # Authors:
 # p1220459 Mathieu Champagne
-# pXXXXXXX Masoud Karami
+# p1220464 Masoud Karami
 # p1220468 Narges Salehi
 
 # UdeM, IFT6135, Assignment 1, H2019
@@ -357,7 +357,7 @@ def main():
     loss,likelihood = classifier.train(tr,va,batch_size,learning_rate,epochs)
     
     # Display the loss and likelihood over epochs number
-    display_graph(loss,likelihood,init_method.lower()+" and stuff")
+    display_graph(loss,likelihood,init_method.lower()+" test")
     
     #classifier.save()
 
