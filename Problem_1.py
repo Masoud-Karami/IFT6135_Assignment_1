@@ -37,7 +37,7 @@ class NN(object):
 	# either ZERO init / NORMAL DISTRIBUTION init / GLOROT init
         bias = 0.0
         for l in range(n_hidden):
-            self.layers.append(ReLU(bias,dims[l:l+2],init_mode))
+            self.layers.append(Sigmoid(bias,dims[l:l+2],init_mode))
         self.layers.append(OutLayer(bias,dims[-2::],init_mode))
     
     def forward(self,inputs):
@@ -336,7 +336,7 @@ def main():
     hid_layer_2 = 150
     init_method = 'GLOROT'
     batch_size = 100
-    epochs = 1
+    epochs = 13
     learning_rate = 0.00025
     display_weights = False
     
